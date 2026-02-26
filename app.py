@@ -113,14 +113,28 @@ def create_app(config_class=Config):
         
         return jsonify(result)
     
-    @app.route('/debug-dashboard')
+    @app.route('/test-after-login')
     @login_required
-    def debug_dashboard():
-        return jsonify({
-            'user': current_user.username,
-            'attacks_count': len(current_user.attacks),
-            'attacks': [{'id': a.id, 'type': a.attack_type} for a in current_user.attacks[:5]]
-        })
+    def test_after_login():
+        return f"""
+        <html>
+        <body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; font-family: Arial, sans-serif;">
+            <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #4cd964;">✅ Login Successful!</h1>
+                <p><strong>User:</strong> {current_user.username}</p>
+                <p><strong>Is Admin:</strong> {current_user.is_admin}</p>
+                <p><strong>Is Approved:</strong> {current_user.is_approved}</p>
+                <p><strong>User ID:</strong> {current_user.id}</p>
+                <hr style="border-color: rgba(255,255,255,0.2);">
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <a href="/dashboard" style="background: #6b5bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 10px;">Go to User Dashboard</a>
+                    <a href="/admin" style="background: #ff3b30; color: white; padding: 10px 20px; text-decoration: none; border-radius: 10px;">Go to Admin Dashboard</a>
+                    <a href="/auth/logout" style="background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 10px;">Logout</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
     
     @app.context_processor
     def inject_announcements():
