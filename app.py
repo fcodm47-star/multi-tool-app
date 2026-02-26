@@ -61,8 +61,7 @@ def create_app(config_class=Config):
             db.session.commit()
             print("✅ Admin user created")
     
-    # Register blueprints - Import AFTER controller is created
-    # But we need to register them here
+    # Register blueprints
     from auth_routes import auth_bp
     from admin_routes import admin_bp
     from ngl_routes import ngl_bp
@@ -70,9 +69,6 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp)
     app.register_blueprint(ngl_bp)
-    
-    # Register bomber_bp later after controller is created
-    # We'll do this outside the function
     
     # Main routes
     @app.route('/')
@@ -116,6 +112,15 @@ def create_app(config_class=Config):
             })
         
         return jsonify(result)
+    
+    @app.route('/debug-dashboard')
+    @login_required
+    def debug_dashboard():
+        return jsonify({
+            'user': current_user.username,
+            'attacks_count': len(current_user.attacks),
+            'attacks': [{'id': a.id, 'type': a.attack_type} for a in current_user.attacks[:5]]
+        })
     
     @app.context_processor
     def inject_announcements():
