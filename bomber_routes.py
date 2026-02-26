@@ -2,9 +2,11 @@ from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from database import db
 from models import AttackLog
-from app import socketio, controller
 from datetime import datetime
 import re
+
+# Import the controller getter function instead of the controller directly
+from controller_instance import get_controller
 
 bomber_bp = Blueprint('bomber', __name__, url_prefix='/bomber')
 
@@ -28,7 +30,7 @@ def start_attack():
         db.func.date(AttackLog.created_at) == today
     ).count()
     
-    if attacks_today >= 5:  # Max 5 attacks per day
+    if attacks_today >= 5:
         return jsonify({'success': False, 'error': 'Daily limit reached (5 attacks)'})
     
     # Validate phone
@@ -54,6 +56,11 @@ def start_attack():
     db.session.add(attack_log)
     db.session.commit()
     
+    # Get controller and use it
+    controller = get_controller()
+    if controller is None:
+        return jsonify({'success': False, 'error': 'Controller not initialized'}), 500
+        
     success, message = controller.start_attack(phone, batches)
     
     return jsonify({'success': success, 'message': message})
@@ -61,6 +68,10 @@ def start_attack():
 @bomber_bp.route('/api/status')
 @login_required
 def get_status():
+    controller = get_controller()
+    if controller is None:
+        return jsonify({'error': 'Controller not initialized'}), 500
+        
     status = controller.get_status()
     
     # Get today's attack count
@@ -80,6 +91,10 @@ def get_status():
 @bomber_bp.route('/api/stop', methods=['POST'])
 @login_required
 def stop_attack():
+    controller = get_controller()
+    if controller is None:
+        return jsonify({'success': False, 'error': 'Controller not initialized'}), 500
+        
     controller.is_running = False
     return jsonify({'success': True})
 

@@ -61,16 +61,18 @@ def create_app(config_class=Config):
             db.session.commit()
             print("✅ Admin user created")
     
-    # Register blueprints
+    # Register blueprints - Import AFTER controller is created
+    # But we need to register them here
     from auth_routes import auth_bp
     from admin_routes import admin_bp
     from ngl_routes import ngl_bp
-    from bomber_routes import bomber_bp
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(admin_bp)
     app.register_blueprint(ngl_bp)
-    app.register_blueprint(bomber_bp)
+    
+    # Register bomber_bp later after controller is created
+    # We'll do this outside the function
     
     # Main routes
     @app.route('/')
@@ -134,19 +136,23 @@ def create_app(config_class=Config):
             'db': db
         }
     
-    # THIS RETURN MUST BE INSIDE THE FUNCTION
     return app
 
 # ===== THIS IS OUTSIDE THE FUNCTION =====
-# Create the app instance (ONLY ONCE!)
-application = create_app()
-
-# For Gunicorn - must be named 'app'
-app = application
+# Create the app instance
+app = create_app()
 
 # Import controller after app creation
 from bomber_controller import BombController
+from controller_instance import init_controller
+from bomber_routes import bomber_bp  # Import AFTER controller is created
+
+# Create and initialize the controller
 controller = BombController(socketio)
+init_controller(controller)
+
+# Register bomber blueprint NOW that controller exists
+app.register_blueprint(bomber_bp)
 
 # This is the entry point for running locally
 if __name__ == '__main__':
