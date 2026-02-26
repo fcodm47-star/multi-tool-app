@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}NGL Spammer - Multi-Tool App{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4">
+        <div class="glass-card">
+            <h4 class="mb-4">
+                <i class="bi bi-gear me-2"></i>
+                Configuration
+            </h4>
+            
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="bi bi-person me-2"></i>
+                    NGL Username
+                </label>
+                <input type="text" class="form-control" id="username" 
+                       placeholder="@username" value="">
+                <small class="text-muted">Don't include the @ symbol</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="bi bi-sliders me-2"></i>
+                    Mode
+                </label>
+                <select class="form-select" id="mode">
+                    <option value="1">Random Quotes (from random.json)</option>
+                    <option value="2">Custom Message</option>
+                </select>
+            </div>
+            
+            <div class="mb-3" id="custom-message-group" style="display: none;">
+                <label class="form-label">
+                    <i class="bi bi-chat me-2"></i>
+                    Custom Message
+                </label>
+                <textarea class="form-control" id="custom-message" rows="3" 
+                          placeholder="Enter your message"></textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-6">
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-sort-numeric-up me-2"></i>
+                            Count
+                        </label>
+                        <input type="number" class="form-control" id="count" 
+                               value="10" min="1" max="500">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-clock me-2"></i>
+                            Delay (sec)
+                        </label>
+                        <input type="number" class="form-control" id="delay" 
+                               value="0.5" min="0.1" max="5" step="0.1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="quote-preview mb-3" id="quote-preview">
+                <small class="text-muted">
+                    <i class="bi bi-quote me-1"></i>
+                    Sample: "{{ random_quote() if random_quote else 'Loading...' }}"
+                </small>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary" id="startBtn" onclick="startNGL()">
+                    <i class="bi bi-play-fill me-2"></i>
+                    Start Spam
+                </button>
+                <button class="btn btn-outline-danger" id="stopBtn" onclick="stopNGL()" disabled>
+                    <i class="bi bi-stop-fill me-2"></i>
+                    Stop
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <h4 class="mb-4">
+                <i class="bi bi-activity me-2"></i>
+                Live Progress
+            </h4>
+            
+            <div class="row mb-4">
+                <div class="col-6">
+                    <div class="stat-card">
+                        <i class="bi bi-send-check fs-1 text-success"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="sent-count">0</span>
+                            <span class="stat-label">Sent</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card">
+                        <i class="bi bi-send-x fs-1 text-danger"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="failed-count">0</span>
+                            <span class="stat-label">Failed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress mb-3" style="height: 25px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     id="progress-bar" role="progressbar" style="width: 0%">
+                    0%
+                </div>
+            </div>
+            
+            <div class="status-box mb-3" id="status">
+                <i class="bi bi-info-circle me-2"></i>
+                Ready to start
+            </div>
+            
+            <div class="logs-container" id="logs">
+                <div class="log-entry text-muted">
+                    <i class="bi bi-arrow-right me-2"></i>
+                    System ready
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let progressInterval;
+
+function startNGL() {
+    const data = {
+        username: $('#username').val(),
+        mode: $('#mode').val(),
+        count: parseInt($('#count').val()),
+        delay: parseFloat($('#delay').val()),
+        message: $('#custom-message').val()
+    };
+    
+    if (!data.username) {
+        alert('Please enter a username');
+        return;
+    }
+    
+    if (data.count > 500 || data.count < 1) {
+        alert('Count must be between 1 and 500');
+        return;
+    }
+    
+    $('#startBtn').prop('disabled', true);
+    $('#stopBtn').prop('disabled', false);
+    
+    $.post('/ngl/api/start', JSON.stringify(data), function(response) {
+        if (!response.success) {
+            alert(response.error);
+            $('#startBtn').prop('disabled', false);
+            $('#stopBtn').prop('disabled', true);
+        }
+    });
+    
+    // Start progress tracking
+    progressInterval = setInterval(updateProgress, 500);
+}
+
+function stopNGL() {
+    $.post('/ngl/api/stop', function() {
+        $('#startBtn').prop('disabled', false);
+        $('#stopBtn').prop('disabled', true);
+        clearInterval(progressInterval);
+        addLog('System', 'Stopped by user', 'warning');
+    });
+}
+
+function updateProgress() {
+    $.get('/ngl/api/progress', function(data) {
+        if (data.running) {
+            const percent = Math.round((data.current / data.total) * 100);
+            $('#progress-bar').css('width', percent + '%').text(percent + '%');
+            $('#sent-count').text(data.current);
+            $('#status').html(`<i class="bi bi-info-circle me-2"></i>${data.status}`);
+            
+            if (data.current > 0) {
+                addLog('Progress', `Sent ${data.current}/${data.total}`, 'info');
+            }
+        } else {
+            $('#startBtn').prop('disabled', false);
+            $('#stopBtn').prop('disabled', true);
+            clearInterval(progressInterval);
+            
+            if (data.status.includes('Completed')) {
+                addLog('System', data.status, 'success');
+            }
+        }
+    });
+}
+
+function addLog(source, message, type = 'info') {
+    const time = new Date().toLocaleTimeString();
+    const logEntry = `
+        <div class="log-entry log-${type}">
+            <span class="log-time">[${time}]</span>
+            <strong>${source}:</strong> ${message}
+        </div>
+    `;
+    $('#logs').prepend(logEntry);
+    
+    // Keep only last 50 logs
+    if ($('#logs .log-entry').length > 50) {
+        $('#logs .log-entry:last').remove();
+    }
+}
+
+// Toggle custom message field
+$('#mode').change(function() {
+    if ($(this).val() === '2') {
+        $('#custom-message-group').slideDown();
+    } else {
+        $('#custom-message-group').slideUp();
+    }
+});
+
+// Load quote count
+$.get('/ngl/api/quotes/count', function(data) {
+    $('.badge.bg-primary').text(data.count + ' quotes');
+});
+</script>
+{% endblock %}

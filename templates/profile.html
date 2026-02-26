@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ current_user.username }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="glass-card text-center">
+            <div class="profile-avatar mb-3">
+                <i class="bi bi-person-circle" style="font-size: 5rem; color: var(--primary);"></i>
+            </div>
+            <h3>{{ current_user.username }}</h3>
+            <p class="text-muted">{{ current_user.email }}</p>
+            
+            <div class="d-flex justify-content-center gap-2 mb-3">
+                {% if current_user.is_admin %}
+                <span class="badge bg-danger">Admin</span>
+                {% endif %}
+                {% if current_user.is_approved %}
+                <span class="badge bg-success">Approved</span>
+                {% else %}
+                <span class="badge bg-warning">Pending</span>
+                {% endif %}
+            </div>
+            
+            <hr>
+            
+            <div class="text-start">
+                <p><i class="bi bi-calendar me-2"></i> Member since: {{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+                <p><i class="bi bi-clock me-2"></i> Last login: {{ current_user.last_login.strftime('%B %d, %Y %H:%M') if current_user.last_login else 'Never' }}</p>
+                <p><i class="bi bi-bomb me-2"></i> Total attacks: {{ current_user.total_attacks }}</p>
+                <p><i class="bi bi-chat me-2"></i> Total messages: {{ current_user.total_messages }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8 mb-4">
+        <div class="glass-card">
+            <h4 class="mb-4">
+                <i class="bi bi-clock-history me-2"></i>
+                Recent Activity
+            </h4>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Messages</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attack in attacks %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if attack.attack_type == 'sms' else 'info' }}">
+                                    {{ attack.attack_type.upper() }}
+                                </span>
+                            </td>
+                            <td>{{ attack.target }}</td>
+                            <td>{{ attack.messages_sent }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if attack.status == 'completed' else 'warning' }}">
+                                    {{ attack.status }}
+                                </span>
+                            </td>
+                            <td>{{ attack.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No activity yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

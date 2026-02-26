@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}SMS Bomber - Multi-Tool App{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4">
+        <div class="glass-card">
+            <h4 class="mb-4">
+                <i class="bi bi-gear me-2"></i>
+                Attack Configuration
+            </h4>
+            
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="bi bi-phone me-2"></i>
+                    Target Number
+                </label>
+                <input type="text" class="form-control" id="phoneNumber" 
+                       placeholder="09123456789 or 9123456789">
+                <small class="text-muted">Philippine number format</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">
+                    <i class="bi bi-layers me-2"></i>
+                    Number of Batches
+                </label>
+                <input type="number" class="form-control" id="batches" 
+                       value="1" min="1" max="100">
+                <small class="text-muted">1 batch = 15 services (Max 100)</small>
+            </div>
+            
+            <div class="mb-3">
+                <h6 class="mb-2">Available Services (15)</h6>
+                <div class="service-grid">
+                    <span class="badge bg-secondary">BOMB OTP</span>
+                    <span class="badge bg-secondary">MWELL</span>
+                    <span class="badge bg-secondary">EZLOAN</span>
+                    <span class="badge bg-secondary">XPRESS PH</span>
+                    <span class="badge bg-secondary">ABENSON</span>
+                    <span class="badge bg-secondary">EXCELLENT</span>
+                    <span class="badge bg-secondary">BISTRO</span>
+                    <span class="badge bg-secondary">BAYAD</span>
+                    <span class="badge bg-secondary">LBC</span>
+                    <span class="badge bg-secondary">PICKUP</span>
+                    <span class="badge bg-secondary">HONEY LOAN</span>
+                    <span class="badge bg-secondary">KUMU</span>
+                    <span class="badge bg-secondary">S5.COM</span>
+                    <span class="badge bg-secondary">CASHALO</span>
+                    <span class="badge bg-secondary">PEXX</span>
+                </div>
+            </div>
+            
+            <div class="daily-limit mb-3">
+                <i class="bi bi-calendar-check me-2"></i>
+                Attacks today: <span id="attacks-today">0</span>/5
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button class="btn btn-danger" id="startBtn" onclick="startAttack()">
+                    <i class="bi bi-bomb me-2"></i>
+                    Launch Attack
+                </button>
+                <button class="btn btn-outline-secondary" id="stopBtn" onclick="stopAttack()" disabled>
+                    <i class="bi bi-stop-fill me-2"></i>
+                    Stop Attack
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="glass-card">
+            <h4 class="mb-4">
+                <i class="bi bi-activity me-2"></i>
+                Attack Monitor
+            </h4>
+            
+            <div class="row mb-4">
+                <div class="col-4">
+                    <div class="stat-card">
+                        <i class="bi bi-check-circle fs-1 text-success"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="successCount">0</span>
+                            <span class="stat-label">Success</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-card">
+                        <i class="bi bi-x-circle fs-1 text-danger"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="failCount">0</span>
+                            <span class="stat-label">Failed</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-card">
+                        <i class="bi bi-percent fs-1 text-info"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="successRate">0%</span>
+                            <span class="stat-label">Rate</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress mb-4" style="height: 10px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" 
+                     id="progressBar" role="progressbar" style="width: 0%"></div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-6">
+                    <div class="worker-status">
+                        <span class="worker-name">MWELL Worker</span>
+                        <span class="badge bg-success" id="mwellStatus">● Active</span>
+                        <span class="badge bg-secondary" id="mwellQueue">0 pending</span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="worker-status">
+                        <span class="worker-name">PEXX Worker</span>
+                        <span class="badge bg-success" id="pexxStatus">● Active</span>
+                        <span class="badge bg-secondary" id="pexxQueue">0 pending</span>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="mb-3">
+                <i class="bi bi-terminal me-2"></i>
+                Live Logs
+            </h5>
+            <div class="logs-container" id="logs">
+                <div class="log-entry text-muted">
+                    <i class="bi bi-arrow-right me-2"></i>
+                    System ready
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+let attackRunning = false;
+
+socket.on('connect', function() {
+    addLog('System', 'Connected to server', 'success');
+    updateStatus();
+});
+
+socket.on('service_result', function(data) {
+    const icon = data.success ? '✅' : '❌';
+    addLog(data.service, `${icon} ${data.message}`, data.success ? 'success' : 'error');
+    updateStats();
+});
+
+socket.on('worker_result', function(data) {
+    addLog(`${data.worker} Worker`, `${data.message} (Batch ${data.batch})`, 
+           data.success ? 'success' : 'warning');
+    $(`#${data.worker.toLowerCase()}Queue`).text('0 pending');
+});
+
+socket.on('stats_update', function(stats) {
+    $('#successCount').text(stats.success);
+    $('#failCount').text(stats.fail);
+    const total = stats.success + stats.fail;
+    const rate = total > 0 ? Math.round((stats.success / total) * 100) : 0;
+    $('#successRate').text(rate + '%');
+    
+    const percent = stats.total > 0 ? Math.round((stats.success + stats.fail) / stats.total * 100) : 0;
+    $('#progressBar').css('width', percent + '%');
+});
+
+socket.on('attack_complete', function(stats) {
+    addLog('System', `Attack complete! Success: ${stats.success}, Failed: ${stats.fail}`, 'success');
+    $('#startBtn').prop('disabled', false);
+    $('#stopBtn').prop('disabled', true);
+    attackRunning = false;
+});
+
+socket.on('attack_error', function(data) {
+    addLog('Error', data.error, 'error');
+    $('#startBtn').prop('disabled', false);
+    $('#stopBtn').prop('disabled', true);
+    attackRunning = false;
+});
+
+function startAttack() {
+    const phone = $('#phoneNumber').val();
+    const batches = $('#batches').val();
+    
+    if (!phone) {
+        alert('Please enter a phone number');
+        return;
+    }
+    
+    if (attackRunning) {
+        alert('Attack already in progress');
+        return;
+    }
+    
+    $('#startBtn').prop('disabled', true);
+    $('#stopBtn').prop('disabled', false);
+    attackRunning = true;
+    
+    $.post('/bomber/api/start', JSON.stringify({
+        phone: phone,
+        batches: parseInt(batches)
+    }), function(response) {
+        if (!response.success) {
+            alert(response.error);
+            $('#startBtn').prop('disabled', false);
+            $('#stopBtn').prop('disabled', true);
+            attackRunning = false;
+        }
+    });
+}
+
+function stopAttack() {
+    $.post('/bomber/api/stop', function() {
+        addLog('System', 'Attack stopped by user', 'warning');
+        $('#startBtn').prop('disabled', false);
+        $('#stopBtn').prop('disabled', true);
+        attackRunning = false;
+    });
+}
+
+function updateStatus() {
+    $.get('/bomber/api/status', function(data) {
+        if (data.user) {
+            $('#attacks-today').text(data.user.attacks_today);
+        }
+        
+        if (data.running) {
+            $('#startBtn').prop('disabled', true);
+            $('#stopBtn').prop('disabled', false);
+            attackRunning = true;
+        }
+        
+        $('#mwellQueue').text(data.mwell_pending + ' pending');
+        $('#pexxQueue').text(data.pexx_pending + ' pending');
+    });
+}
+
+function updateStats() {
+    $.get('/bomber/api/status', function(data) {
+        if (data.stats) {
+            $('#successCount').text(data.stats.success || 0);
+            $('#failCount').text(data.stats.fail || 0);
+            const total = (data.stats.success || 0) + (data.stats.fail || 0);
+            const rate = total > 0 ? Math.round((data.stats.success / total) * 100) : 0;
+            $('#successRate').text(rate + '%');
+        }
+    });
+}
+
+function addLog(source, message, type = 'info') {
+    const time = new Date().toLocaleTimeString();
+    const logEntry = `
+        <div class="log-entry log-${type}">
+            <span class="log-time">[${time}]</span>
+            <strong>${source}:</strong> ${message}
+        </div>
+    `;
+    $('#logs').prepend(logEntry);
+    
+    // Keep only last 50 logs
+    if ($('#logs .log-entry').length > 50) {
+        $('#logs .log-entry:last').remove();
+    }
+}
+
+// Update status every 2 seconds
+setInterval(updateStatus, 2000);
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Multi-Tool App{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="glass-card">
+            <h2 class="mb-4">
+                <i class="bi bi-grid me-2"></i>
+                Welcome back, {{ current_user.username }}!
+            </h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <i class="bi bi-check-circle text-success fs-1"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="user-attacks">0</span>
+                            <span class="stat-label">Total Attacks</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <i class="bi bi-envelope text-info fs-1"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="user-messages">0</span>
+                            <span class="stat-label">Messages Sent</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <i class="bi bi-calendar text-warning fs-1"></i>
+                        <div class="stat-details">
+                            <span class="stat-value" id="member-since"></span>
+                            <span class="stat-label">Member Since</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <a href="{{ url_for('ngl.index') }}" class="text-decoration-none">
+            <div class="tool-card">
+                <div class="tool-icon">
+                    <i class="bi bi-chat-dots"></i>
+                </div>
+                <div class="tool-content">
+                    <h3>NGL Spammer</h3>
+                    <p>Send anonymous messages with quotes from our collection</p>
+                    <span class="badge bg-primary">15+ quotes</span>
+                </div>
+                <i class="bi bi-arrow-right tool-arrow"></i>
+            </div>
+        </a>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <a href="{{ url_for('bomber.index') }}" class="text-decoration-none">
+            <div class="tool-card">
+                <div class="tool-icon">
+                    <i class="bi bi-bomb"></i>
+                </div>
+                <div class="tool-content">
+                    <h3>SMS Bomber</h3>
+                    <p>15+ services for OTP bombing (Educational only)</p>
+                    <span class="badge bg-danger">15 services</span>
+                </div>
+                <i class="bi bi-arrow-right tool-arrow"></i>
+            </div>
+        </a>
+    </div>
+    
+    <div class="col-12">
+        <div class="glass-card">
+            <h4 class="mb-3">
+                <i class="bi bi-clock-history me-2"></i>
+                Recent Activity
+            </h4>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Messages</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-activity">
+                        <tr>
+                            <td colspan="5" class="text-center">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Load user stats
+    $.get('/auth/api/user/stats', function(data) {
+        $('#user-attacks').text(data.total_attacks || 0);
+        $('#user-messages').text(data.total_messages || 0);
+        $('#member-since').text(data.member_since || 'N/A');
+    });
+    
+    // Load recent activity
+    $.get('/api/recent-activity', function(data) {
+        let html = '';
+        data.forEach(attack => {
+            html += `
+                <tr>
+                    <td><span class="badge bg-${attack.type === 'sms' ? 'danger' : 'info'}">${attack.type.toUpperCase()}</span></td>
+                    <td>${attack.target}</td>
+                    <td>${attack.messages}</td>
+                    <td><span class="badge bg-${attack.status === 'completed' ? 'success' : 'warning'}">${attack.status}</span></td>
+                    <td>${attack.date}</td>
+                </tr>
+            `;
+        });
+        $('#recent-activity').html(html || '<tr><td colspan="5" class="text-center">No activity yet</td></tr>');
+    });
+});
+</script>
+{% endblock %}

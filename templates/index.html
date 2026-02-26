@@ -1,1 +1,246 @@
+{% extends "base.html" %}
 
+{% block title %}Multi-Tool App - Home{% endblock %}
+
+{% block content %}
+<div class="row min-vh-80 align-items-center">
+    <div class="col-lg-6 mb-5">
+        <div class="hero-section">
+            <h1 class="display-4 fw-bold text-white mb-4">
+                Welcome to
+                <span class="text-gradient">Multi-Tool</span>
+            </h1>
+            <p class="lead text-white-50 mb-4">
+                A collection of powerful tools for educational purposes. 
+                Use responsibly and ethically.
+            </p>
+            
+            {% if not current_user.is_authenticated %}
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-person-plus me-2"></i>
+                    Get Started
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-lg">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>
+                    Login
+                </a>
+            </div>
+            {% else %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-speedometer2 me-2"></i>
+                Go to Dashboard
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon bg-primary">
+                        <i class="bi bi-chat-dots"></i>
+                    </div>
+                    <h4>NGL Spammer</h4>
+                    <p>Send anonymous messages with our collection of inspirational quotes</p>
+                    <span class="badge bg-primary" id="home-quote-count">Loading...</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon bg-danger">
+                        <i class="bi bi-bomb"></i>
+                    </div>
+                    <h4>SMS Bomber</h4>
+                    <p>15+ services for OTP bombing (Educational use only)</p>
+                    <span class="badge bg-danger">15 services</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon bg-success">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4>User System</h4>
+                    <p>Secure authentication with admin approval system</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="feature-card">
+                    <div class="feature-icon bg-info">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h4>Live Tracking</h4>
+                    <p>Real-time progress updates with WebSocket</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Section -->
+<div class="row mt-5 pt-5">
+    <div class="col-12">
+        <div class="glass-card text-center">
+            <h3 class="mb-4">Platform Statistics</h3>
+            <div class="row">
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-circle">
+                        <span class="stat-circle-number" id="total-users">0</span>
+                        <span class="stat-circle-label">Users</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-circle">
+                        <span class="stat-circle-number" id="total-attacks">0</span>
+                        <span class="stat-circle-label">Attacks</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-circle">
+                        <span class="stat-circle-number" id="total-messages">0</span>
+                        <span class="stat-circle-label">Messages</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6 mb-3">
+                    <div class="stat-circle">
+                        <span class="stat-circle-number" id="total-quotes">0</span>
+                        <span class="stat-circle-label">Quotes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Load quote count
+    $.get('/ngl/api/quotes/count', function(data) {
+        $('#home-quote-count').text(data.count + ' quotes');
+        $('#total-quotes').text(data.count);
+    });
+    
+    // Load total users (if admin endpoint exists)
+    $.get('/admin/api/stats', function(data) {
+        $('#total-users').text(data.total_users || '0');
+        $('#total-attacks').text(data.total_attacks || '0');
+        $('#total-messages').text(data.total_messages || '0');
+    }).fail(function() {
+        $('#total-users').text('0');
+        $('#total-attacks').text('0');
+        $('#total-messages').text('0');
+    });
+});
+</script>
+
+<style>
+.hero-section {
+    animation: fadeInLeft 1s ease;
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, #fff, #f0f0f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 25px;
+    color: white;
+    transition: all 0.3s ease;
+    height: 100%;
+    animation: fadeInUp 0.8s ease backwards;
+}
+
+.feature-card:nth-child(1) { animation-delay: 0.1s; }
+.feature-card:nth-child(2) { animation-delay: 0.2s; }
+.feature-card:nth-child(3) { animation-delay: 0.3s; }
+.feature-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.stat-circle {
+    text-align: center;
+}
+
+.stat-circle-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    display: block;
+    line-height: 1;
+    text-shadow: 0 2px 10px rgba(255,255,255,0.3);
+}
+
+.stat-circle-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        text-align: center;
+    }
+    
+    .hero-section .d-flex {
+        justify-content: center;
+    }
+    
+    .feature-card {
+        text-align: center;
+    }
+    
+    .feature-icon {
+        margin: 0 auto 20px;
+    }
+}
+</style>
+{% endblock %}
