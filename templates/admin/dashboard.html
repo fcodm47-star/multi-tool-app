@@ -13,6 +13,7 @@
             <i class="bi bi-shield-lock me-2"></i>
             Admin Dashboard
         </h2>
+        <p>Welcome, {{ current_user.username }}! You are logged in as admin.</p>
     </div>
 </div>
 
@@ -51,27 +52,6 @@
                 <span class="stat-value">{{ total_messages }}</span>
                 <span class="stat-label">Messages</span>
             </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-lg-6 mb-4">
-        <div class="admin-card">
-            <h5 class="mb-3">
-                <i class="bi bi-graph-up me-2"></i>
-                User Registrations (7 days)
-            </h5>
-            <canvas id="userChart"></canvas>
-        </div>
-    </div>
-    <div class="col-lg-6 mb-4">
-        <div class="admin-card">
-            <h5 class="mb-3">
-                <i class="bi bi-bar-chart me-2"></i>
-                Attack Activity (7 days)
-            </h5>
-            <canvas id="attackChart"></canvas>
         </div>
     </div>
 </div>
@@ -154,58 +134,4 @@
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-// User chart
-const userCtx = document.getElementById('userChart').getContext('2d');
-new Chart(userCtx, {
-    type: 'line',
-    data: {
-        labels: {{ dates|tojson }},
-        datasets: [{
-            label: 'New Users',
-            data: {{ user_counts|tojson }},
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true,
-                stepSize: 1
-            }
-        }
-    }
-});
-
-// Attack chart
-const attackCtx = document.getElementById('attackChart').getContext('2d');
-new Chart(attackCtx, {
-    type: 'bar',
-    data: {
-        labels: {{ dates|tojson }},
-        datasets: [{
-            label: 'Attacks',
-            data: {{ attack_counts|tojson }},
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-            borderColor: 'rgb(255, 99, 132)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true,
-                stepSize: 1
-            }
-        }
-    }
-});
-</script>
 {% endblock %}
