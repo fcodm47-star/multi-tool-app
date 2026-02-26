@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Multi-Tool App{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="bi bi-shield-lock me-2"></i>
+            Admin Dashboard
+        </h2>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="admin-stat-card">
+            <i class="bi bi-people fs-1 text-primary"></i>
+            <div class="stat-details">
+                <span class="stat-value">{{ total_users }}</span>
+                <span class="stat-label">Total Users</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-stat-card">
+            <i class="bi bi-person-plus fs-1 text-warning"></i>
+            <div class="stat-details">
+                <span class="stat-value">{{ pending_users }}</span>
+                <span class="stat-label">Pending Approval</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-stat-card">
+            <i class="bi bi-bomb fs-1 text-danger"></i>
+            <div class="stat-details">
+                <span class="stat-value">{{ total_attacks }}</span>
+                <span class="stat-label">Total Attacks</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-stat-card">
+            <i class="bi bi-chat fs-1 text-success"></i>
+            <div class="stat-details">
+                <span class="stat-value">{{ total_messages }}</span>
+                <span class="stat-label">Messages</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="admin-card">
+            <h5 class="mb-3">
+                <i class="bi bi-graph-up me-2"></i>
+                User Registrations (7 days)
+            </h5>
+            <canvas id="userChart"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="admin-card">
+            <h5 class="mb-3">
+                <i class="bi bi-bar-chart me-2"></i>
+                Attack Activity (7 days)
+            </h5>
+            <canvas id="attackChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="admin-card">
+            <h5 class="mb-3">
+                <i class="bi bi-clock-history me-2"></i>
+                Recent Users
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Joined</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in recent_users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if user.is_approved %}
+                                <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-primary mt-2">
+                View All Users
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-lg-6 mb-4">
+        <div class="admin-card">
+            <h5 class="mb-3">
+                <i class="bi bi-megaphone me-2"></i>
+                Recent Attacks
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Type</th>
+                            <th>Target</th>
+                            <th>Messages</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attack in recent_attacks %}
+                        <tr>
+                            <td>{{ attack.user.username }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if attack.attack_type == 'sms' else 'info' }}">
+                                    {{ attack.attack_type }}
+                                </span>
+                            </td>
+                            <td>{{ attack.target }}</td>
+                            <td>{{ attack.messages_sent }}</td>
+                            <td>{{ attack.created_at.strftime('%H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// User chart
+const userCtx = document.getElementById('userChart').getContext('2d');
+new Chart(userCtx, {
+    type: 'line',
+    data: {
+        labels: {{ dates|tojson }},
+        datasets: [{
+            label: 'New Users',
+            data: {{ user_counts|tojson }},
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                stepSize: 1
+            }
+        }
+    }
+});
+
+// Attack chart
+const attackCtx = document.getElementById('attackChart').getContext('2d');
+new Chart(attackCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ dates|tojson }},
+        datasets: [{
+            label: 'Attacks',
+            data: {{ attack_counts|tojson }},
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+            borderColor: 'rgb(255, 99, 132)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                stepSize: 1
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

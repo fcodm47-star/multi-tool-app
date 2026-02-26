@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Create Announcement{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper" style="max-width: 800px; margin: 0 auto;">
+    <div class="admin-header">
+        <div class="d-flex align-items-center">
+            <a href="{{ url_for('admin.announcements') }}" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="mb-0">
+                <i class="bi bi-plus-circle me-2"></i>
+                Create New Announcement
+            </h2>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.create_announcement') }}" class="announcement-form">
+        <div class="form-group mb-4">
+            <label class="form-label">
+                <i class="bi bi-chat-dots me-2"></i>
+                Title
+            </label>
+            <input type="text" name="title" class="form-control" required 
+                   placeholder="Enter announcement title" maxlength="200">
+            <small class="text-muted">Max 200 characters</small>
+        </div>
+
+        <div class="form-group mb-4">
+            <label class="form-label">
+                <i class="bi bi-file-text me-2"></i>
+                Content
+            </label>
+            <textarea name="content" class="form-control" rows="8" required 
+                      placeholder="Write your announcement here..."></textarea>
+            <small class="text-muted">Supports plain text, links will be clickable</small>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-flag me-2"></i>
+                        Priority Level
+                    </label>
+                    <select name="priority" class="form-select">
+                        <option value="0">🔵 Normal (Blue)</option>
+                        <option value="1">🟡 Important (Yellow)</option>
+                        <option value="2">🔴 Urgent (Red)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-calendar me-2"></i>
+                        Expires After (Optional)
+                    </label>
+                    <input type="number" name="expires_days" class="form-control" 
+                           placeholder="Days until expiration" min="1" max="365">
+                    <small class="text-muted">Leave empty for no expiration</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="preview-section mb-4">
+            <h5 class="mb-3">
+                <i class="bi bi-eye me-2"></i>
+                Preview
+            </h5>
+            <div class="preview-card" id="previewCard">
+                <div class="preview-header">
+                    <div class="preview-title" id="previewTitle">Announcement Title</div>
+                    <span class="preview-badge" id="previewBadge">Normal</span>
+                </div>
+                <div class="preview-content" id="previewContent">
+                    Your announcement content will appear here...
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg me-2"></i>
+                Publish Announcement
+            </button>
+            <a href="{{ url_for('admin.announcements') }}" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Live preview
+document.querySelector('input[name="title"]').addEventListener('input', function(e) {
+    document.getElementById('previewTitle').textContent = e.target.value || 'Announcement Title';
+});
+
+document.querySelector('textarea[name="content"]').addEventListener('input', function(e) {
+    document.getElementById('previewContent').textContent = e.target.value || 'Your announcement content will appear here...';
+});
+
+document.querySelector('select[name="priority"]').addEventListener('change', function(e) {
+    const previewCard = document.getElementById('previewCard');
+    const previewBadge = document.getElementById('previewBadge');
+    
+    // Remove existing priority classes
+    previewCard.classList.remove('priority-0', 'priority-1', 'priority-2');
+    
+    const priority = parseInt(e.target.value);
+    previewCard.classList.add(`priority-${priority}`);
+    
+    switch(priority) {
+        case 2:
+            previewBadge.innerHTML = '🔴 Urgent';
+            break;
+        case 1:
+            previewBadge.innerHTML = '🟡 Important';
+            break;
+        default:
+            previewBadge.innerHTML = '🔵 Normal';
+    }
+});
+</script>
+
+<style>
+.announcement-form {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+.preview-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.preview-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.preview-card.priority-0 {
+    border-left-color: #5ac8fa;
+}
+
+.preview-card.priority-1 {
+    border-left-color: #ffcc00;
+}
+
+.preview-card.priority-2 {
+    border-left-color: #ff3b30;
+}
+
+.preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.preview-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.preview-badge {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: #f0f0f0;
+}
+
+.preview-content {
+    color: #6c757d;
+    line-height: 1.6;
+    min-height: 60px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+@media (max-width: 768px) {
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions button,
+    .form-actions a {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

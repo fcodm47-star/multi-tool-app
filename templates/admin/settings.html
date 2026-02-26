@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Settings{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<style>
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.settings-section {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(107, 91, 255, 0.1);
+}
+
+.settings-section h5 {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(107, 91, 255, 0.1);
+    color: var(--dark);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-section h5 i {
+    color: var(--primary);
+    font-size: 1.3rem;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.settings-row:last-child {
+    border-bottom: none;
+}
+
+.settings-label {
+    font-weight: 500;
+    color: var(--dark);
+    flex: 1;
+}
+
+.settings-label small {
+    display: block;
+    color: #6c757d;
+    font-weight: normal;
+    margin-top: 5px;
+    font-size: 0.85rem;
+}
+
+.settings-input {
+    width: 150px;
+    margin-left: 20px;
+}
+
+.settings-input input[type="number"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.settings-input input[type="number"]:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(107, 91, 255, 0.1);
+}
+
+.settings-input .form-check-input {
+    width: 50px;
+    height: 25px;
+    cursor: pointer;
+}
+
+.settings-input .form-check-input:checked {
+    background-color: var(--success);
+    border-color: var(--success);
+}
+
+.settings-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.btn-save {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(107, 91, 255, 0.3);
+}
+
+.btn-reset {
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 2px solid #e2e8f0;
+    padding: 12px 30px;
+    border-radius: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-reset:hover {
+    background: #e2e8f0;
+    color: var(--dark);
+}
+
+.info-box {
+    background: #e8f4fd;
+    border-left: 4px solid #5ac8fa;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.info-box i {
+    font-size: 1.5rem;
+    color: #5ac8fa;
+}
+
+.info-box p {
+    margin: 0;
+    color: #01579b;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+    .settings-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .settings-input {
+        width: 100%;
+        margin-left: 0;
+    }
+    
+    .settings-actions {
+        flex-direction: column;
+    }
+    
+    .btn-save, .btn-reset {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+    <div class="admin-header">
+        <h2>
+            <i class="bi bi-gear-wide-connected me-2"></i>
+            System Settings
+        </h2>
+    </div>
+
+    <div class="settings-container">
+        <!-- Info Box -->
+        <div class="info-box">
+            <i class="bi bi-info-circle"></i>
+            <p>Changes to settings will take effect immediately. Some settings may require a page refresh to apply.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin.settings') }}" id="settingsForm">
+            <!-- Rate Limiting Section -->
+            <div class="settings-section">
+                <h5>
+                    <i class="bi bi-speedometer2"></i>
+                    Rate Limiting
+                </h5>
+                
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Enable Rate Limiting
+                        <small>Restrict users based on daily limits</small>
+                    </div>
+                    <div class="settings-input">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="rate_limit_enabled" id="rateLimitEnabled"
+                                   {% if settings.get('rate_limit_enabled') == 'True' %}checked{% endif %}>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Max Attacks Per Day
+                        <small>Maximum number of attacks a user can perform in 24 hours</small>
+                    </div>
+                    <div class="settings-input">
+                        <input type="number" name="max_attacks_per_day" 
+                               value="{{ settings.get('max_attacks_per_day', '5') }}" 
+                               min="1" max="100" class="form-control">
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Max Messages Per Attack
+                        <small>Maximum messages per attack (for NGL and SMS)</small>
+                    </div>
+                    <div class="settings-input">
+                        <input type="number" name="max_messages_per_attack" 
+                               value="{{ settings.get('max_messages_per_attack', '500') }}" 
+                               min="10" max="1000" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cache Settings -->
+            <div class="settings-section">
+                <h5>
+                    <i class="bi bi-database"></i>
+                    Cache Settings
+                </h5>
+                
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Announcement Cache Time
+                        <small>How long to cache announcements (in seconds)</small>
+                    </div>
+                    <div class="settings-input">
+                        <input type="number" name="announcement_cache_time" 
+                               value="{{ settings.get('announcement_cache_time', '300') }}" 
+                               min="30" max="3600" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="settings-section">
+                <h5>
+                    <i class="bi bi-shield-lock"></i>
+                    Security
+                </h5>
+                
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Session Timeout
+                        <small>User session duration in minutes (requires restart)</small>
+                    </div>
+                    <div class="settings-input">
+                        <input type="number" value="30" min="5" max="1440" class="form-control" disabled>
+                        <small class="text-muted">Set in environment variables</small>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Admin Session Only
+                        <small>Restrict admin panel to specific IPs</small>
+                    </div>
+                    <div class="settings-input">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" disabled>
+                        </div>
+                        <small class="text-muted">Coming soon</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Info -->
+            <div class="settings-section">
+                <h5>
+                    <i class="bi bi-info-circle"></i>
+                    System Information
+                </h5>
+                
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Python Version
+                    </div>
+                    <div class="settings-value">
+                        <code>{{ sys.version_info.major }}.{{ sys.version_info.minor }}.{{ sys.version_info.micro }}</code>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Database
+                    </div>
+                    <div class="settings-value">
+                        <code>{{ 'PostgreSQL' if 'postgresql' in db.engine.url.drivername else 'SQLite' }}</code>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Last Database Backup
+                    </div>
+                    <div class="settings-value">
+                        <code>Not backed up</code>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Total Users
+                    </div>
+                    <div class="settings-value">
+                        <strong>{{ stats.total_users }}</strong>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Total Attacks
+                    </div>
+                    <div class="settings-value">
+                        <strong>{{ stats.total_attacks }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="settings-section" style="border: 2px solid rgba(255, 59, 48, 0.2);">
+                <h5 style="color: #ff3b30;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Danger Zone
+                </h5>
+                
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Clear All Logs
+                        <small>Delete all attack logs (cannot be undone)</small>
+                    </div>
+                    <div class="settings-input">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmClearLogs()">
+                            <i class="bi bi-trash me-1"></i>Clear Logs
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-row">
+                    <div class="settings-label">
+                        Reset All Settings
+                        <small>Restore default configuration</small>
+                    </div>
+                    <div class="settings-input">
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="confirmResetSettings()">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button type="submit" class="btn-save">
+                    <i class="bi bi-check-lg"></i>
+                    Save Changes
+                </button>
+                <button type="button" class="btn-reset" onclick="resetForm()">
+                    <i class="bi bi-x-lg"></i>
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function resetForm() {
+    if (confirm('Discard all unsaved changes?')) {
+        window.location.reload();
+    }
+}
+
+function confirmClearLogs() {
+    if (confirm('⚠️ WARNING: This will permanently delete ALL attack logs. This action cannot be undone!\n\nAre you absolutely sure?')) {
+        fetch('/admin/api/clear-logs', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                alert('All logs have been cleared successfully');
+                location.reload();
+            } else {
+                alert('Failed to clear logs');
+            }
+        });
+    }
+}
+
+function confirmResetSettings() {
+    if (confirm('⚠️ Reset all settings to default values? This action cannot be undone.')) {
+        // Reset form to default values
+        document.querySelector('input[name="max_attacks_per_day"]').value = '5';
+        document.querySelector('input[name="max_messages_per_attack"]').value = '500';
+        document.querySelector('input[name="announcement_cache_time"]').value = '300';
+        document.getElementById('rateLimitEnabled').checked = true;
+    }
+}
+
+// Live validation
+document.querySelector('input[name="max_attacks_per_day"]').addEventListener('input', function(e) {
+    let value = parseInt(e.target.value);
+    if (value < 1) e.target.value = 1;
+    if (value > 100) e.target.value = 100;
+});
+
+document.querySelector('input[name="max_messages_per_attack"]').addEventListener('input', function(e) {
+    let value = parseInt(e.target.value);
+    if (value < 10) e.target.value = 10;
+    if (value > 1000) e.target.value = 1000;
+});
+
+document.querySelector('input[name="announcement_cache_time"]').addEventListener('input', function(e) {
+    let value = parseInt(e.target.value);
+    if (value < 30) e.target.value = 30;
+    if (value > 3600) e.target.value = 3600;
+});
+</script>
+{% endblock %}

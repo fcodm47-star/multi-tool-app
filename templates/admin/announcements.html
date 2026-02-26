@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Announcements{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+    <div class="admin-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="bi bi-megaphone-fill me-2"></i>
+                Announcements
+            </h2>
+            <a href="{{ url_for('admin.create_announcement') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>
+                New Announcement
+            </a>
+        </div>
+    </div>
+
+    <!-- Announcements List -->
+    <div class="announcements-list" id="announcementsList">
+        {% for announcement in announcements %}
+        <div class="announcement-card priority-{{ announcement.priority }}" id="announcement-{{ announcement.id }}">
+            <div class="announcement-header">
+                <div class="announcement-title">
+                    {% if announcement.priority == 2 %}
+                    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                    {% elif announcement.priority == 1 %}
+                    <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                    {% else %}
+                    <i class="bi bi-info-circle-fill text-info"></i>
+                    {% endif %}
+                    <h5 class="mb-0">{{ announcement.title }}</h5>
+                </div>
+                <div class="announcement-meta">
+                    <span class="badge bg-{{ 'danger' if announcement.priority == 2 else 'warning' if announcement.priority == 1 else 'info' }}">
+                        Priority {{ announcement.priority }}
+                    </span>
+                    <span class="badge bg-{{ 'success' if announcement.is_active else 'secondary' }}">
+                        {{ 'Active' if announcement.is_active else 'Inactive' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="announcement-content">
+                {{ announcement.content }}
+            </div>
+
+            <div class="announcement-footer">
+                <div class="footer-left">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <span>{{ announcement.author.username }}</span>
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-clock me-1"></i>
+                    <span>{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% if announcement.expires_at %}
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-calendar-x me-1"></i>
+                    <span class="text-warning">Expires: {{ announcement.expires_at.strftime('%Y-%m-%d') }}</span>
+                    {% endif %}
+                </div>
+                <div class="footer-right">
+                    <button class="admin-action-btn edit" onclick="toggleStatus({{ announcement.id }})" 
+                            title="{{ 'Deactivate' if announcement.is_active else 'Activate' }}">
+                        <i class="bi bi-{{ 'pause-circle' if announcement.is_active else 'play-circle' }}"></i>
+                    </button>
+                    <a href="{{ url_for('admin.edit_announcement', announcement_id=announcement.id) }}" 
+                       class="admin-action-btn edit" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button class="admin-action-btn delete" onclick="deleteAnnouncement({{ announcement.id }})" 
+                            title="Delete">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-megaphone fs-1 d-block mb-3 text-muted"></i>
+            <h4>No announcements yet</h4>
+            <p class="text-muted">Create your first announcement to communicate with users</p>
+            <a href="{{ url_for('admin.create_announcement') }}" class="btn btn-primary mt-3">
+                <i class="bi bi-plus-lg me-2"></i>
+                Create Announcement
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function toggleStatus(announcementId) {
+    fetch(`/admin/announcements/${announcementId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Failed to toggle announcement status');
+        }
+    });
+}
+
+function deleteAnnouncement(announcementId) {
+    if (confirm('⚠️ Are you sure you want to delete this announcement? This action cannot be undone!')) {
+        fetch(`/admin/announcements/${announcementId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                document.getElementById(`announcement-${announcementId}`).remove();
+                showNotification('Announcement deleted successfully', 'success');
+                
+                // Show empty state if no announcements left
+                if (document.querySelectorAll('.announcement-card').length === 0) {
+                    location.reload(); // Reload to show empty state
+                }
+            } else {
+                alert('Failed to delete announcement');
+            }
+        });
+    }
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    notification.style.zIndex = '9999';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+
+<style>
+.announcements-list {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.announcement-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.announcement-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 10px 30px rgba(107, 91, 255, 0.1);
+}
+
+.announcement-card.priority-2 {
+    border-left-color: #ff3b30;
+    background: linear-gradient(to right, rgba(255, 59, 48, 0.02), white);
+}
+
+.announcement-card.priority-1 {
+    border-left-color: #ffcc00;
+    background: linear-gradient(to right, rgba(255, 204, 0, 0.02), white);
+}
+
+.announcement-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.announcement-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.announcement-title i {
+    font-size: 1.2rem;
+}
+
+.announcement-title h5 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.announcement-meta {
+    display: flex;
+    gap: 8px;
+}
+
+.announcement-content {
+    color: #4a5568;
+    line-height: 1.6;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    font-size: 1rem;
+    white-space: pre-wrap;
+}
+
+.announcement-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.footer-left {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.footer-left i {
+    margin-right: 3px;
+}
+
+.footer-right {
+    display: flex;
+    gap: 8px;
+}
+
+@media (max-width: 768px) {
+    .announcement-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .announcement-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .footer-right {
+        align-self: flex-end;
+    }
+}
+</style>
+{% endblock %}
