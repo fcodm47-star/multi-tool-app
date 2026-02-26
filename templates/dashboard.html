@@ -92,9 +92,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% set attacks = current_user.attacks|sort(attribute='created_at', reverse=True)|slice(0,5) %}
+                        {% set attacks = current_user.attacks|sort(attribute='created_at', reverse=true) %}
                         {% if attacks %}
-                            {% for attack in attacks %}
+                            {% for attack in attacks[:5] %}
                             <tr>
                                 <td>
                                     <span class="badge bg-{{ 'danger' if attack.attack_type == 'sms' else 'info' }}">
@@ -110,15 +110,11 @@
                                 </td>
                                 <td>{{ attack.created_at.strftime('%Y-%m-%d %H:%M') if attack.created_at else 'N/A' }}</td>
                             </tr>
-                            {% else %}
+                            {% endfor %}
+                        {% else %}
                             <tr>
                                 <td colspan="5" class="text-center">No activity yet</td>
                             </tr>
-                            {% endfor %}
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center">No activity yet</td>
-                        </tr>
                         {% endif %}
                     </tbody>
                 </table>
