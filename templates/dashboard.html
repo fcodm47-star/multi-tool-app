@@ -15,7 +15,7 @@
                     <div class="stat-card">
                         <i class="bi bi-check-circle text-success fs-1"></i>
                         <div class="stat-details">
-                            <span class="stat-value" id="user-attacks">0</span>
+                            <span class="stat-value" id="user-attacks">{{ current_user.total_attacks }}</span>
                             <span class="stat-label">Total Attacks</span>
                         </div>
                     </div>
@@ -24,7 +24,7 @@
                     <div class="stat-card">
                         <i class="bi bi-envelope text-info fs-1"></i>
                         <div class="stat-details">
-                            <span class="stat-value" id="user-messages">0</span>
+                            <span class="stat-value" id="user-messages">{{ current_user.total_messages }}</span>
                             <span class="stat-label">Messages Sent</span>
                         </div>
                     </div>
@@ -33,7 +33,7 @@
                     <div class="stat-card">
                         <i class="bi bi-calendar text-warning fs-1"></i>
                         <div class="stat-details">
-                            <span class="stat-value" id="member-since"></span>
+                            <span class="stat-value" id="member-since">{{ current_user.created_at.strftime('%Y-%m-%d') if current_user.created_at else 'N/A' }}</span>
                             <span class="stat-label">Member Since</span>
                         </div>
                     </div>
@@ -51,7 +51,7 @@
                 <div class="tool-content">
                     <h3>NGL Spammer</h3>
                     <p>Send anonymous messages with quotes from our collection</p>
-                    <span class="badge bg-primary">15+ quotes</span>
+                    <span class="badge bg-primary" id="quote-count">Loading...</span>
                 </div>
                 <i class="bi bi-arrow-right tool-arrow"></i>
             </div>
@@ -93,7 +93,10 @@
                     </thead>
                     <tbody id="recent-activity">
                         <tr>
-                            <td colspan="5" class="text-center">Loading...</td>
+                            <td colspan="5" class="text-center">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                Loading...
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -104,28 +107,48 @@
 
 <script>
 $(document).ready(function() {
-    // Load user stats
-    $.get('/auth/api/user/stats', function(data) {
-        $('#user-attacks').text(data.total_attacks || 0);
-        $('#user-messages').text(data.total_messages || 0);
-        $('#member-since').text(data.member_since || 'N/A');
+    // Load quote count
+    $.ajax({
+        url: '/ngl/api/quotes/count',
+        method: 'GET',
+        timeout: 5000,
+        success: function(data) {
+            $('#quote-count').text(data.count + ' quotes');
+        },
+        error: function() {
+            $('#quote-count').text('Quotes loaded');
+        }
     });
     
     // Load recent activity
-    $.get('/api/recent-activity', function(data) {
-        let html = '';
-        data.forEach(attack => {
-            html += `
-                <tr>
-                    <td><span class="badge bg-${attack.type === 'sms' ? 'danger' : 'info'}">${attack.type.toUpperCase()}</span></td>
-                    <td>${attack.target}</td>
-                    <td>${attack.messages}</td>
-                    <td><span class="badge bg-${attack.status === 'completed' ? 'success' : 'warning'}">${attack.status}</span></td>
-                    <td>${attack.date}</td>
-                </tr>
-            `;
-        });
-        $('#recent-activity').html(html || '<tr><td colspan="5" class="text-center">No activity yet</td></tr>');
+    $.ajax({
+        url: '/api/recent-activity',
+        method: 'GET',
+        timeout: 5000,
+        success: function(data) {
+            let html = '';
+            if (data && data.length > 0) {
+                data.forEach(attack => {
+                    const typeClass = attack.type === 'sms' ? 'danger' : 'info';
+                    const statusClass = attack.status === 'completed' ? 'success' : 'warning';
+                    html += `
+                        <tr>
+                            <td><span class="badge bg-${typeClass}">${attack.type.toUpperCase()}</span></td>
+                            <td>${attack.target}</td>
+                            <td>${attack.messages}</td>
+                            <td><span class="badge bg-${statusClass}">${attack.status}</span></td>
+                            <td>${attack.date}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html = '<tr><td colspan="5" class="text-center">No activity yet</td></tr>';
+            }
+            $('#recent-activity').html(html);
+        },
+        error: function() {
+            $('#recent-activity').html('<tr><td colspan="5" class="text-center">Could not load activity</td></tr>');
+        }
     });
 });
 </script>

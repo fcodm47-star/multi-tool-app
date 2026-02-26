@@ -117,20 +117,35 @@
 <script>
 $(document).ready(function() {
     // Load quote count
-    $.get('/ngl/api/quotes/count', function(data) {
-        $('#home-quote-count').text(data.count + ' quotes');
-        $('#total-quotes').text(data.count);
+    $.ajax({
+        url: '/ngl/api/quotes/count',
+        method: 'GET',
+        timeout: 5000,
+        success: function(data) {
+            $('#home-quote-count').text(data.count + ' quotes');
+            $('#total-quotes').text(data.count);
+        },
+        error: function() {
+            $('#home-quote-count').text('Quotes loaded');
+            $('#total-quotes').text('0');
+        }
     });
     
-    // Load total users (if admin endpoint exists)
-    $.get('/admin/api/stats', function(data) {
-        $('#total-users').text(data.total_users || '0');
-        $('#total-attacks').text(data.total_attacks || '0');
-        $('#total-messages').text(data.total_messages || '0');
-    }).fail(function() {
-        $('#total-users').text('0');
-        $('#total-attacks').text('0');
-        $('#total-messages').text('0');
+    // Load total stats
+    $.ajax({
+        url: '/admin/api/stats',
+        method: 'GET',
+        timeout: 5000,
+        success: function(data) {
+            $('#total-users').text(data.total_users || '0');
+            $('#total-attacks').text(data.total_attacks || '0');
+            $('#total-messages').text(data.total_messages || '0');
+        },
+        error: function() {
+            $('#total-users').text('0');
+            $('#total-attacks').text('0');
+            $('#total-messages').text('0');
+        }
     });
 });
 </script>
