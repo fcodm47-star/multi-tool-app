@@ -12,7 +12,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
             flash('Access denied', 'error')
-            return redirect(url_for('main.dashboard'))
+            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -175,58 +175,6 @@ def delete_announcement(announcement_id):
     flash('Announcement deleted successfully', 'success')
     return redirect(url_for('admin.announcements'))
 
-@admin_bp.route('/settings', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def settings():
-    if request.method == 'POST':
-        # Update settings
-        settings_to_update = [
-            ('max_attacks_per_day', request.form.get('max_attacks_per_day', 5, type=int)),
-            ('max_messages_per_attack', request.form.get('max_messages_per_attack', 500, type=int)),
-            ('rate_limit_enabled', 'rate_limit_enabled' in request.form),
-            ('announcement_cache_time', request.form.get('announcement_cache_time', 300, type=int))
-        ]
-        
-        for key, value in settings_to_update:
-            setting = Setting.query.filter_by(key=key).first()
-            if not setting:
-                setting = Setting(key=key, value=str(value))
-                db.session.add(setting)
-            else:
-                setting.value = str(value)
-        
-        db.session.commit()
-        flash('Settings updated successfully', 'success')
-        return redirect(url_for('admin.settings'))
-    
-    # Get current settings
-    settings_dict = {}
-    for setting in Setting.query.all():
-        settings_dict[setting.key] = setting.value
-    
-    return render_template('admin/settings.html', settings=settings_dict)
-
-@admin_bp.route('/api/announcements/active')
-def get_active_announcements():
-    announcements = Announcement.query.filter_by(is_active=True)\
-        .order_by(Announcement.priority.desc(), Announcement.created_at.desc())\
-        .limit(5).all()
-    
-    result = []
-    for a in announcements:
-        if not a.is_expired():
-            result.append({
-                'id': a.id,
-                'title': a.title,
-                'content': a.content,
-                'priority': a.priority,
-                'author': a.author.username,
-                'created_at': a.created_at.strftime('%Y-%m-%d %H:%M')
-            })
-    
-    return jsonify(result)
-    
 @admin_bp.route('/announcements/<int:announcement_id>/toggle', methods=['POST'])
 @login_required
 @admin_required
@@ -236,38 +184,6 @@ def toggle_announcement(announcement_id):
     db.session.commit()
     return jsonify({'success': True, 'is_active': announcement.is_active})
 
-@admin_bp.route('/api/user/<int:user_id>')
-@login_required
-@admin_required
-def get_user_details(user_id):
-    user = User.query.get_or_404(user_id)
-    
-    # Get recent attacks
-    recent_attacks = AttackLog.query.filter_by(user_id=user.id)\
-        .order_by(AttackLog.created_at.desc()).limit(5).all()
-    
-    attacks_data = []
-    for attack in recent_attacks:
-        attacks_data.append({
-            'type': attack.attack_type,
-            'target': attack.target,
-            'messages': attack.messages_sent,
-            'date': attack.created_at.strftime('%Y-%m-%d %H:%M')
-        })
-    
-    return jsonify({
-        'id': user.id,
-        'username': user.username,
-        'email': user.email,
-        'is_admin': user.is_admin,
-        'is_approved': user.is_approved,
-        'created_at': user.created_at.strftime('%Y-%m-%d %H:%M'),
-        'last_login': user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else None,
-        'total_attacks': user.total_attacks,
-        'total_messages': user.total_messages,
-        'recent_attacks': attacks_data
-    })          
-    
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -308,7 +224,59 @@ def settings():
                              'total_users': total_users,
                              'total_attacks': total_attacks
                          })
-                         
+
+@admin_bp.route('/api/user/<int:user_id>')
+@login_required
+@admin_required
+def get_user_details(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    # Get recent attacks
+    recent_attacks = AttackLog.query.filter_by(user_id=user.id)\
+        .order_by(AttackLog.created_at.desc()).limit(5).all()
+    
+    attacks_data = []
+    for attack in recent_attacks:
+        attacks_data.append({
+            'type': attack.attack_type,
+            'target': attack.target,
+            'messages': attack.messages_sent,
+            'date': attack.created_at.strftime('%Y-%m-%d %H:%M')
+        })
+    
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'is_admin': user.is_admin,
+        'is_approved': user.is_approved,
+        'created_at': user.created_at.strftime('%Y-%m-%d %H:%M'),
+        'last_login': user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else None,
+        'total_attacks': user.total_attacks,
+        'total_messages': user.total_messages,
+        'recent_attacks': attacks_data
+    })
+
+@admin_bp.route('/api/announcements/active')
+def get_active_announcements():
+    announcements = Announcement.query.filter_by(is_active=True)\
+        .order_by(Announcement.priority.desc(), Announcement.created_at.desc())\
+        .limit(5).all()
+    
+    result = []
+    for a in announcements:
+        if not a.is_expired():
+            result.append({
+                'id': a.id,
+                'title': a.title,
+                'content': a.content,
+                'priority': a.priority,
+                'author': a.author.username,
+                'created_at': a.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+    
+    return jsonify(result)
+
 @admin_bp.route('/api/clear-logs', methods=['POST'])
 @login_required
 @admin_required
@@ -319,4 +287,4 @@ def clear_logs():
         return jsonify({'success': True, 'deleted': num_deleted})
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500                         
+        return jsonify({'success': False, 'error': str(e)}), 500
