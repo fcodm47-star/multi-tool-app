@@ -11,7 +11,10 @@ bcrypt = Bcrypt()
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # If user is already logged in, redirect to appropriate dashboard
     if current_user.is_authenticated:
+        if current_user.is_admin:
+            return redirect(url_for('admin.dashboard'))
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
@@ -19,24 +22,38 @@ def login():
         password = request.form.get('password')
         remember = True if request.form.get('remember') else False
         
+        if not username or not password:
+            flash('Please fill in all fields', 'error')
+            return render_template('login.html')
+        
         user = User.query.filter_by(username=username).first()
         
-        if not user or not bcrypt.check_password_hash(user.password, password):
+        if not user:
             flash('Invalid username or password', 'error')
-            return redirect(url_for('auth.login'))
+            return render_template('login.html')
         
+        # Check password
+        if not bcrypt.check_password_hash(user.password, password):
+            flash('Invalid username or password', 'error')
+            return render_template('login.html')
+        
+        # Check if user is approved (unless admin)
         if not user.is_approved and not user.is_admin:
-            flash('Your account is pending approval', 'warning')
-            return redirect(url_for('auth.login'))
+            flash('Your account is pending approval. Please wait for admin to approve your account.', 'warning')
+            return render_template('login.html')
         
+        # Update last login
         user.last_login = datetime.utcnow()
         db.session.commit()
         
+        # Log the user in
         login_user(user, remember=remember)
         
+        # Redirect based on user type
         if user.is_admin:
             return redirect(url_for('admin.dashboard'))
-        return redirect(url_for('dashboard'))
+        else:
+            return redirect(url_for('dashboard'))
     
     return render_template('login.html')
 
@@ -120,7 +137,7 @@ def user_stats():
     return jsonify({
         'username': current_user.username,
         'email': current_user.email,
-        'member_since': current_user.created_at.strftime('%Y-%m-%d'),
+        'member_since': current_user.created_at.strftime('%Y-%m-%d') if current_user.created_at else 'N/A',
         'total_attacks': total_attacks,
         'total_messages': total_messages,
         'is_admin': current_user.is_admin,
